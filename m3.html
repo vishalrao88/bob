@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Musical Note Memory Flashcards</title>
+    <script src="https://unpkg.com/vexflow@3.0.9/releases/vexflow-min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+        }
+        #scorecard {
+            display: none;
+            margin-top: 20px;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #aaa;
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="noteCanvas" width="800" height="600"></canvas>
+    <div id="scorecard"></div>
+
+    <script>
+        const VF = Vex.Flow;
+        const notesPlayed = [];
+        const totalNotes = 20;
+        let currentNote = 0;
+
+        const canvas = document.getElementById('noteCanvas');
+        const renderer = new VF.Renderer(canvas, VF.Renderer.Backends.CANVAS);
+        const context = renderer.getContext();
+
+        function randomNote() {
+            const clefs = ['treble', 'bass'];
+            const trebleNotes = ['c/4', 'd/4', 'e/4', 'f/4', 'g/4', 'a/4', 'b/4', 'c/5', 'd/5', 'e/5'];
+            const bassNotes = ['c/2', 'd/2', 'e/2', 'f/2', 'g/2', 'a/2', 'b/2', 'c/3', 'd/3', 'e/3'];
+
+            const clef = clefs[Math.floor(Math.random() * clefs.length)];
+            const note = clef === 'treble' ? trebleNotes[Math.floor(Math.random() * trebleNotes.length)]
+                                          : bassNotes[Math.floor(Math.random() * bassNotes.length)];
+            return {clef, note};
+        }
+
+        function noteToLetter(note) {
+            return note[0].toUpperCase();
+        }
+
+        function drawNote() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            const stave = new VF.Stave(50, 200, 700);
+            const {clef, note} = randomNote();
+            stave.addClef(clef).setContext(context).draw();
+
+            const staveNote = new VF.StaveNote({ clef: clef, keys: [note], duration: "q" });
+
+            if (note.includes('b') || note.includes('#')) {
+                staveNote.addAccidental(0, new VF.Accidental(note.includes('b') ? 'b' : '#'));
+            }
+
+            const voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
+            voice.addTickables([staveNote]);
+
+            const formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400);
+            voice.draw(context, stave);
+
+            notesPlayed.push({clef, note, letter: noteToLetter(note)});
+        }
+
+        function showScorecard() {
+            canvas.style.display = 'none';
+            const scorecard = document.getElementById('scorecard');
+            scorecard.style.display = 'block';
+
+            let html = '<h2>Scorecard</h2><table><tr><th>Clef</th><th>Note Shown</th><th>Letter</th></tr>';
+            for (const entry of notesPlayed) {
+                html += `<tr><td>${entry.clef}</td><td>${entry.note}</td><td>${entry.letter}</td></tr>`;
+            }
+            html += '</table>';
+
+            scorecard.innerHTML = html;
+        }
+
+        document.body.addEventListener('click', () => {
+            if (currentNote < totalNotes) {
+                drawNote();
+                currentNote++;
+            } else {
+                showScorecard();
+            }
+        });
+
+        drawNote();
+    </script>
+</body>
+</html>
